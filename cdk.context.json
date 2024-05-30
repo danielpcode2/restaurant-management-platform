@@ -1,0 +1,32 @@
+{
+  "dev": {
+    "account": "455063836771",
+    "region": "us-east-1",
+    "domain": "bitqna.com",
+    "domainCert": "arn:aws:acm:us-east-1:455063836771:certificate/14148f72-44de-4602-8b09-0971779f1093"
+  },
+  "qa": {
+    "account": "",
+    "region": "",
+    "domain": "",
+    "domainCert": ""
+  },
+  "prod": {
+    "account": "",
+    "region": "",
+    "domain": "",
+    "domainCert": ""
+  },
+  "hosted-zone:account=455063836771:domainName=bitqna.com:region=us-east-1": {
+    "Id": "/hostedzone/Z3RK1HKFW8W701",
+    "Name": "bitqna.com."
+  },
+  "availability-zones:account=455063836771:region=us-east-1": [
+    "us-east-1a",
+    "us-east-1b",
+    "us-east-1c",
+    "us-east-1d",
+    "us-east-1e",
+    "us-east-1f"
+  ]
+}
