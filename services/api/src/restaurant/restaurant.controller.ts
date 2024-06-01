@@ -7,11 +7,10 @@ import {
   Param,
   Query,
 } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 import { RestaurantService } from './restaurant.service';
 import { CreateRestaurantDto } from './dto/create-restaurant.dto';
-import { UpdateRestaurantDto } from './dto/update-restaurant.dto';
 import { CreateTableDto } from './dto/create-table.dto';
 
 @ApiTags('restaurant')
@@ -28,8 +27,9 @@ export class RestaurantController {
 
   @Get()
   @ApiOperation({ summary: 'Returns list of Restaurant' })
+  @ApiQuery({ name: 'startKey', required: false, type: String })
   @ApiResponse({ status: 200 })
-  findAll(@Query('startKey') startKey: string) {
+  findAll(@Query('startKey') startKey?: string) {
     return this.restaurantService.findAll(startKey);
   }
 
@@ -45,9 +45,9 @@ export class RestaurantController {
   @ApiResponse({ status: 200 })
   update(
     @Param('id') id: string,
-    @Body() updateRestaurantDto: UpdateRestaurantDto,
+    @Body() createRestaurantDto: CreateRestaurantDto,
   ) {
-    return this.restaurantService.update(id, updateRestaurantDto);
+    return this.restaurantService.update(id, createRestaurantDto);
   }
 
   @Post(':id/table')

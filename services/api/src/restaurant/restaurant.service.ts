@@ -4,7 +4,6 @@ import {
   PutCommand,
   PutCommandInput,
   ScanCommandInput,
-  paginateScan,
   DynamoDBDocumentPaginationConfiguration,
   GetCommandInput,
   GetCommand,
@@ -17,7 +16,6 @@ import { v4 as uuid } from 'uuid';
 
 import { DynamoClientsProvider } from 'src/dynamodb/dynamodb.provider';
 import { CreateRestaurantDto } from './dto/create-restaurant.dto';
-import { UpdateRestaurantDto } from './dto/update-restaurant.dto';
 import { CreateTableDto } from './dto/create-table.dto';
 
 @Injectable()
@@ -48,11 +46,20 @@ export class RestaurantService {
     }
   }
 
-  async findAll(startKey: string = null, limit: number = 10) {
+  async findAll(startKey?: string, limit: number = 10) {
     try {
       const params: ScanCommandInput = {
         TableName: process.env.TABLE_RESTAURANTS,
         Limit: limit,
+        FilterExpression: 'contains(#entityType, :entityType)',
+        ProjectionExpression: 'restaurantId, #name, description, score, urlImg',
+        ExpressionAttributeNames: {
+          '#name': 'name',
+          '#entityType': 'entityType',
+        },
+        ExpressionAttributeValues: {
+          ':entityType': 'restaurant',
+        },
       };
 
       if (startKey) {
@@ -66,14 +73,7 @@ export class RestaurantService {
         new ScanCommand(params),
       );
 
-      const items = response.Items.length
-        ? response.Items.map((i) => ({
-            restaurantId: i.restaurantId,
-            name: i.name,
-            description: i.description,
-            urlImg: i.urlImg,
-          }))
-        : [];
+      const items = response.Items.length ? response.Items : [];
 
       return {
         items,
@@ -146,7 +146,7 @@ export class RestaurantService {
     }
   }
 
-  async update(id: string, updateRestaurantDto: UpdateRestaurantDto) {
+  async update(id: string, createRestaurantDto: CreateRestaurantDto) {
     try {
       const params: UpdateCommandInput = {
         TableName: process.env.TABLE_RESTAURANTS,
@@ -162,9 +162,9 @@ export class RestaurantService {
           '#urlImg': 'urlImg',
         },
         ExpressionAttributeValues: {
-          ':name': updateRestaurantDto.name,
-          ':description': updateRestaurantDto.description,
-          ':urlImg': updateRestaurantDto.urlImg,
+          ':name': createRestaurantDto.name,
+          ':description': createRestaurantDto.description,
+          ':urlImg': createRestaurantDto.urlImg,
         },
       };
 
@@ -184,7 +184,7 @@ export class RestaurantService {
         TableName: process.env.TABLE_RESTAURANTS,
         Item: {
           restaurantId: id,
-          entityType: `table#${id}`,
+          entityType: `table#${createTableDto.numTable}`,
           ...createTableDto,
         },
         ConditionExpression:

@@ -13,4 +13,8 @@ export class CreateRestaurantDto {
   @ApiProperty()
   @IsString()
   readonly urlImg: string;
+
+  @ApiProperty()
+  @IsString()
+  readonly score: string;
 }

@@ -54,18 +54,18 @@ export class RestaurantManagementPlatformStack extends cdk.Stack {
         type: AttributeType.STRING,
       },
       sortKey: {
-        name: "restaurantId",
+        name: "restaurantTable",
         type: AttributeType.STRING,
       },
     });
     tableBookings.addGlobalSecondaryIndex({
       indexName: "gsi-booking",
       partitionKey: {
-        name: "restaurantId",
+        name: "restaurantTable",
         type: AttributeType.STRING,
       },
       sortKey: {
-        name: "booking",
+        name: "bookingDate",
         type: AttributeType.STRING,
       },
     });
@@ -116,6 +116,7 @@ export class RestaurantManagementPlatformStack extends cdk.Stack {
           enableLogging: true,
           environment: {
             ENV: appEnv,
+            REGION: cdk.Aws.REGION,
             TABLE_RESTAURANTS: tableRestaurants.tableName,
             TABLE_BOOKINGS: tableBookings.tableName,
           },
