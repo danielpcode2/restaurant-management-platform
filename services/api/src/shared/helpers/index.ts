@@ -12,14 +12,11 @@ type Booking = {
   bookingTime: string;
 };
 
-export const getAllHoursOfDay = (dateString: string): string[] => {
-  const date = dayjs(dateString);
-  const hours: string[] = [];
-
-  for (let i = 9; i < 23; i++) {
-    hours.push(date.hour(i).format('HH:00'));
+export const getAllHours = () => {
+  const hours = [];
+  for (let hour = 9; hour <= 23; hour++) {
+    hours.push(dayjs().hour(hour).minute(0).format('HH:mm'));
   }
-
   return hours;
 };
 
@@ -40,40 +37,51 @@ export const getAvailableHours = (
   return availableHours;
 };
 
-export const getAvailableTable = (
-  tables: Table[],
-  bookings: Booking[],
-  minSeats: number,
-): number => {
-  const bookedTables = new Set(bookings.map((booking) => booking.table));
-
-  const availableTables = tables
-    .filter(
-      (table) =>
-        table.numSeats >= minSeats && !bookedTables.has(table.numTable),
-    )
-    .sort((a, b) => a.numTable - b.numTable);
-
-  if (availableTables.length === 0) {
-    return null;
-  }
-
-  return availableTables[0].numTable;
-};
-
 export const filterUnavailableTimes = (
   tables: Table[],
   timeNotAvailable: Booking[],
   minSeats: number,
-): Booking[] => {
-  return timeNotAvailable.filter((booking) => {
-    const availableTable = tables.find(
-      (table) =>
-        table.numSeats > minSeats &&
-        !timeNotAvailable.some(
-          (unavailable) => unavailable.table === table.numTable,
-        ),
+): string[] => {
+  const hours = getAllHours();
+  const availability = [];
+
+  tables.forEach((table) => {
+    if (table.numSeats >= minSeats) {
+      const unavailableHours = timeNotAvailable
+        .filter((booking) => booking.table === table.numTable)
+        .map((booking) => booking.bookingTime);
+
+      const availableHours = hours.filter(
+        (hour) => !unavailableHours.includes(hour),
+      );
+
+      availability.push({
+        table: table.numTable,
+        availableHours: availableHours,
+      });
+    }
+  });
+
+  const allAvailableHours = availability.reduce((allHours, item) => {
+    allHours.push(...item.availableHours);
+    return allHours;
+  }, []);
+
+  const uniqueAvailableHours = [...new Set(allAvailableHours)].sort();
+
+  return uniqueAvailableHours as string[];
+};
+
+export const isAnyTableAvailable = (
+  tables: Table[],
+  timeNotAvailable: Booking[],
+  checkTime: string,
+): Table[] => {
+  return tables.filter((table) => {
+    const isReserved = timeNotAvailable.some(
+      (booking) =>
+        booking.table === table.numTable && booking.bookingTime === checkTime,
     );
-    return !availableTable;
+    return !isReserved;
   });
 };

@@ -33,34 +33,37 @@ export class RestaurantController {
     return this.restaurantService.findAll(startKey);
   }
 
-  @Get(':id')
+  @Get(':restaurantId')
   @ApiOperation({ summary: 'Find Restaurant by Id' })
   @ApiResponse({ status: 200 })
-  findOne(@Param('id') id: string) {
-    return this.restaurantService.findOne(id);
+  findOne(@Param('restaurantId') restaurantId: string) {
+    return this.restaurantService.findOne(restaurantId);
   }
 
-  @Patch(':id')
+  @Patch(':restaurantId')
   @ApiOperation({ summary: 'Update Restaurant' })
   @ApiResponse({ status: 200 })
   update(
-    @Param('id') id: string,
+    @Param('restaurantId') restaurantId: string,
     @Body() createRestaurantDto: CreateRestaurantDto,
   ) {
-    return this.restaurantService.update(id, createRestaurantDto);
+    return this.restaurantService.update(restaurantId, createRestaurantDto);
   }
 
-  @Post(':id/table')
+  @Post(':restaurantId/table')
   @ApiOperation({ summary: 'Add new a table' })
   @ApiResponse({ status: 201 })
-  addTable(@Param('id') id: string, @Body() createTableDto: CreateTableDto) {
-    return this.restaurantService.createTable(id, createTableDto);
+  addTable(
+    @Param('restaurantId') restaurantId: string,
+    @Body() createTableDto: CreateTableDto,
+  ) {
+    return this.restaurantService.createTable(restaurantId, createTableDto);
   }
 
-  @Get(':id/table')
+  @Get(':restaurantId/table')
   @ApiOperation({ summary: 'Returns list table of Restaurant' })
   @ApiResponse({ status: 200 })
-  findAlltable(@Param('id') id: string) {
-    return this.restaurantService.findAllTable(id);
+  findAlltable(@Param('restaurantId') restaurantId: string) {
+    return this.restaurantService.findAllTable(restaurantId);
   }
 }

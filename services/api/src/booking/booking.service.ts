@@ -11,12 +11,12 @@ import { v4 as uuid } from 'uuid';
 import { RestaurantService } from 'src/restaurant/restaurant.service';
 import {
   filterUnavailableTimes,
-  getAllHoursOfDay,
-  getAvailableHours,
-  getAvailableTable,
+  getAllHours,
+  isAnyTableAvailable,
 } from 'src/shared/helpers';
 import { DynamoClientsProvider } from 'src/dynamodb/dynamodb.provider';
 import { CreateBookingDto } from './dto/create-booking.dto';
+import { ResponaeBookingDto } from './dto/response-booking.dto';
 
 @Injectable()
 export class BookingService {
@@ -25,21 +25,25 @@ export class BookingService {
     private dynamoClientsProvider: DynamoClientsProvider,
   ) {}
 
-  async create(createBookingDto: CreateBookingDto) {
+  async create(
+    createBookingDto: CreateBookingDto,
+  ): Promise<ResponaeBookingDto> {
     try {
       const responseTables = await this.restaurantService.findAllTable(
         createBookingDto.restaurantId,
       );
 
       if (!responseTables.items.length)
-        return new HttpException('not available', HttpStatus.BAD_REQUEST);
+        throw new HttpException('not available', HttpStatus.BAD_REQUEST);
 
       const tables = responseTables.items.filter(
-        (item) => item.numSeats >= createBookingDto.seating,
+        (item) =>
+          item.numSeats >= createBookingDto.seating &&
+          item.numSeats <= createBookingDto.seating + 1,
       );
 
       if (!tables.length)
-        return new HttpException(
+        throw new HttpException(
           'Number of persons exceeds table capacity',
           HttpStatus.BAD_REQUEST,
         );
@@ -55,25 +59,26 @@ export class BookingService {
         timeNotAvailable.push(...resutl);
       }
 
-      const tableAssigned = getAvailableTable(
+      const availableTables = isAnyTableAvailable(
         tables,
         timeNotAvailable,
-        createBookingDto.seating,
+        createBookingDto.bookingTime,
       );
 
-      if (!tableAssigned)
-        return new HttpException(
+      if (!availableTables.length)
+        throw new HttpException(
           'Booking not available',
           HttpStatus.BAD_REQUEST,
         );
 
+      const bookingId = uuid();
       const params: PutCommandInput = {
         TableName: process.env.TABLE_BOOKINGS,
         Item: {
           ...createBookingDto,
-          bookingId: uuid(),
-          restaurantTable: `${createBookingDto.restaurantId}#${tableAssigned}`,
-          table: tableAssigned,
+          bookingId: bookingId,
+          restaurantTable: `${createBookingDto.restaurantId}#${availableTables[0].numTable}`,
+          table: availableTables[0].numTable,
         },
       };
 
@@ -81,9 +86,13 @@ export class BookingService {
         new PutCommand(params),
       );
 
-      return;
+      return {
+        ...createBookingDto,
+        bookingId,
+        table: availableTables[0].numTable,
+      };
     } catch (error) {
-      throw new HttpException('Error', HttpStatus.BAD_REQUEST);
+      throw error;
     }
   }
 
@@ -97,14 +106,14 @@ export class BookingService {
         await this.restaurantService.findAllTable(restaurantId);
 
       if (!responseTables.items.length)
-        return new HttpException('not available', HttpStatus.BAD_REQUEST);
+        throw new HttpException('not available', HttpStatus.BAD_REQUEST);
 
       const tables = responseTables.items.filter(
-        (item) => item.numSeats >= minSeats && item.numSeats <= minSeats + 2,
+        (item) => item.numSeats >= minSeats && item.numSeats <= minSeats + 1,
       );
 
       if (!tables.length)
-        return new HttpException(
+        throw new HttpException(
           'Number of persons exceeds table capacity',
           HttpStatus.BAD_REQUEST,
         );
@@ -120,17 +129,13 @@ export class BookingService {
         timeNotAvailable.push(...resutl);
       }
 
-      if (!timeNotAvailable.length) return getAllHoursOfDay(bookingDate);
+      if (!timeNotAvailable.length) return getAllHours();
 
       const result = filterUnavailableTimes(tables, timeNotAvailable, minSeats);
 
-      if (!result.length) return getAllHoursOfDay(bookingDate);
-
-      console.log(result);
-
-      return getAvailableHours(bookingDate, result);
+      return result;
     } catch (error) {
-      throw new HttpException('Error', HttpStatus.BAD_REQUEST);
+      throw error;
     }
   }
 

@@ -1,16 +1,9 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Param,
-  Delete,
-  Query,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 import { BookingService } from './booking.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
+import { ResponaeBookingDto } from './dto/response-booking.dto';
 
 @ApiTags('booking')
 @Controller('booking')
@@ -18,28 +11,32 @@ export class BookingController {
   constructor(private readonly bookingService: BookingService) {}
 
   @Post()
-  create(@Body() createBookingDto: CreateBookingDto) {
+  @ApiOperation({ summary: 'Create booking' })
+  @ApiResponse({
+    status: 201,
+    type: ResponaeBookingDto,
+  })
+  create(
+    @Body() createBookingDto: CreateBookingDto,
+  ): Promise<ResponaeBookingDto> {
     return this.bookingService.create(createBookingDto);
   }
 
-  @Get(':id')
+  @Get(':restaurantId')
   @ApiOperation({ summary: 'Search available hours for booking' })
-  @ApiResponse({ status: 200 })
+  @ApiResponse({
+    status: 200,
+    description: 'List of available hours',
+  })
   findAll(
-    @Param('id') id: string,
+    @Param('restaurantId') restaurantId: string,
     @Query('bookingDate') bookingDate: string,
     @Query('seats') seats: number,
   ) {
-    return this.bookingService.availableHoursForBooking(id, bookingDate, seats);
+    return this.bookingService.availableHoursForBooking(
+      restaurantId,
+      bookingDate,
+      seats,
+    );
   }
-
-  // @Get(':id')
-  // findOne(@Param('id') id: string) {
-  //   return this.bookingService.findOne(+id);
-  // }
-
-  // @Delete(':id')
-  // remove(@Param('id') id: string) {
-  //   return this.bookingService.remove(+id);
-  // }
 }

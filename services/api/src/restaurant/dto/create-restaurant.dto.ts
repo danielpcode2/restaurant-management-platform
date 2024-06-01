@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString } from 'class-validator';
+import { IsString, IsUrl } from 'class-validator';
 
 export class CreateRestaurantDto {
   @ApiProperty()
@@ -11,7 +11,7 @@ export class CreateRestaurantDto {
   readonly description: string;
 
   @ApiProperty()
-  @IsString()
+  @IsUrl()
   readonly urlImg: string;
 
   @ApiProperty()
