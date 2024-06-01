@@ -46,6 +46,13 @@ export class RestaurantManagementPlatformStack extends cdk.Stack {
         type: AttributeType.STRING,
       },
     });
+    tableRestaurants.addGlobalSecondaryIndex({
+      indexName: "gsi-entity",
+      partitionKey: {
+        name: "entity",
+        type: AttributeType.STRING,
+      },
+    });
 
     const tableBookings = new Table(this, "TableBookings", {
       tableName: `${appEnv}Bookings`,

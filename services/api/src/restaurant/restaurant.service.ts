@@ -1,9 +1,7 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import {
-  ScanCommand,
   PutCommand,
   PutCommandInput,
-  ScanCommandInput,
   DynamoDBDocumentPaginationConfiguration,
   GetCommandInput,
   GetCommand,
@@ -11,6 +9,7 @@ import {
   UpdateCommand,
   QueryCommandInput,
   paginateQuery,
+  QueryCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { v4 as uuid } from 'uuid';
 
@@ -31,6 +30,7 @@ export class RestaurantService {
         Item: {
           restaurantId: id,
           entityType: `restaurant#${id}`,
+          entity: 'restaurant',
           ...createRestaurantDto,
         },
         ConditionExpression: 'attribute_not_exists(restaurantId)',
@@ -48,29 +48,31 @@ export class RestaurantService {
 
   async findAll(startKey?: string, limit: number = 10) {
     try {
-      const params: ScanCommandInput = {
+      const params: QueryCommandInput = {
         TableName: process.env.TABLE_RESTAURANTS,
-        Limit: limit,
-        FilterExpression: 'contains(#entityType, :entityType)',
+        IndexName: 'gsi-entity',
+        KeyConditionExpression: '#entity = :entity',
         ProjectionExpression: 'restaurantId, #name, description, score, urlImg',
         ExpressionAttributeNames: {
           '#name': 'name',
-          '#entityType': 'entityType',
+          '#entity': 'entity',
         },
         ExpressionAttributeValues: {
-          ':entityType': 'restaurant',
+          ':entity': 'restaurant',
         },
+        Limit: limit,
       };
 
       if (startKey) {
         params.ExclusiveStartKey = {
+          entity: 'restaurant',
           restaurantId: startKey,
           entityType: `restaurant#${startKey}`,
         };
       }
 
       const response = await this.dynamoClientsProvider.dbDocumentClient.send(
-        new ScanCommand(params),
+        new QueryCommand(params),
       );
 
       const items = response.Items.length ? response.Items : [];
@@ -138,9 +140,22 @@ export class RestaurantService {
         new GetCommand(params),
       );
 
-      response?.Item && delete response.Item.entityType;
+      if (response?.Item) {
+        delete response.Item.entityType;
+        delete response.Item.entity;
+      }
 
-      return response.Item;
+      const allTables = await this.findAllTable(id);
+
+      const tables = allTables.items.map((i) => ({
+        numTable: i.numTable,
+        numSeats: i.numSeats,
+      }));
+
+      return {
+        ...response.Item,
+        tables,
+      };
     } catch (error) {
       throw new HttpException('Error', HttpStatus.BAD_REQUEST);
     }
@@ -185,6 +200,7 @@ export class RestaurantService {
         Item: {
           restaurantId: id,
           entityType: `table#${createTableDto.numTable}`,
+          entity: 'table',
           ...createTableDto,
         },
         ConditionExpression:
