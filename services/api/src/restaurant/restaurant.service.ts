@@ -46,7 +46,7 @@ export class RestaurantService {
     }
   }
 
-  async findAll(startKey?: string, limit: number = 10) {
+  async findAll(startKey?: string, limit: number = 4) {
     try {
       const params: QueryCommandInput = {
         TableName: process.env.TABLE_RESTAURANTS,

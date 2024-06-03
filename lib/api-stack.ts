@@ -18,6 +18,8 @@ import { join } from "node:path";
 
 import { getAppEnv, getConfig } from "./config";
 export class RestaurantManagementPlatformStack extends cdk.Stack {
+  public readonly vpc: Vpc;
+
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
@@ -45,6 +47,7 @@ export class RestaurantManagementPlatformStack extends cdk.Stack {
         name: "entityType",
         type: AttributeType.STRING,
       },
+      removalPolicy: cdk.RemovalPolicy.RETAIN,
     });
     tableRestaurants.addGlobalSecondaryIndex({
       indexName: "gsi-entity",
@@ -64,6 +67,7 @@ export class RestaurantManagementPlatformStack extends cdk.Stack {
         name: "restaurantTable",
         type: AttributeType.STRING,
       },
+      removalPolicy: cdk.RemovalPolicy.RETAIN,
     });
     tableBookings.addGlobalSecondaryIndex({
       indexName: "gsi-booking",
@@ -83,7 +87,7 @@ export class RestaurantManagementPlatformStack extends cdk.Stack {
     });
 
     // Networking
-    const defaultVpc = new Vpc(this, "VPC", {
+    this.vpc = new Vpc(this, "VPC", {
       cidr: "10.1.0.0/16",
       maxAzs: 2,
       enableDnsHostnames: true,
@@ -103,7 +107,7 @@ export class RestaurantManagementPlatformStack extends cdk.Stack {
     });
 
     const securityGroups = new SecurityGroup(this, "SecurityGroup", {
-      vpc: defaultVpc,
+      vpc: this.vpc,
       allowAllOutbound: true,
     });
     securityGroups.addIngressRule(Peer.anyIpv4(), Port.tcp(443));
@@ -111,10 +115,10 @@ export class RestaurantManagementPlatformStack extends cdk.Stack {
     // Service
     const task = new ApplicationLoadBalancedFargateService(
       this,
-      "ApplicationFargateService",
+      "APiFargateService",
       {
         cpu: 256,
-        memoryLimitMiB: 1024,
+        memoryLimitMiB: 512,
         desiredCount: 1,
         publicLoadBalancer: true,
         taskImageOptions: {
@@ -140,7 +144,7 @@ export class RestaurantManagementPlatformStack extends cdk.Stack {
         domainName: `api.${conf.domain}`,
         domainZone: rootZone,
         certificate: primaryDomainCert,
-        vpc: defaultVpc,
+        vpc: this.vpc,
         securityGroups: [securityGroups],
       }
     );
